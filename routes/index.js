@@ -25,7 +25,7 @@ module.exports = function makeRouterWithSockets (io, client) {
     client.query('SELECT name, tweets.id, content FROM tweets INNER JOIN users ON tweets.userid = users.id WHERE users.name = $1', [req.params.username], function (err, result) {
       if (err) return next(err); // pass errors to Express
       var tweets = result.rows;
-      res.render('index', { title: 'Twitter.js', tweets: tweets, showForm: true });
+      res.render('index', { title: 'Twitter.js', tweets: tweets, showForm: true, username: req.params.username });
     });
   });
 
@@ -40,8 +40,16 @@ module.exports = function makeRouterWithSockets (io, client) {
 
   // create a new tweet
   router.post('/tweets', function(req, res, next){
-    var newTweet = tweetBank.add(req.body.name, req.body.content);
-    io.sockets.emit('new_tweet', newTweet);
+    client.query('SELECT id FROM users WHERE name = $1', [req.body.name], function (err, result) {
+      if (err) return next(err); // pass errors to Express
+      var userID = result.rows[0].id;
+      console.log(userID)
+      client.query('INSERT INTO tweets (userid, content) VALUES ($1, $2)', [userID, req.body.content], function (err, result) {
+        if (err) return next(err); // pass errors to Express
+        var tweets = result.rows;
+        io.sockets.emit('new_tweet', tweets);
+      });
+    });
     res.redirect('/');
   });
 
