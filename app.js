@@ -9,6 +9,12 @@ var path = require('path');
 var mime = require('mime');
 var bodyParser = require('body-parser');
 var socketio = require('socket.io');
+// setting up the node-postgres driver
+var pg = require('pg');
+var conString = 'postgres://localhost:5432/twitterdb';
+var client = new pg.Client(conString);
+
+
 
 // templating boilerplate setup
 app.engine('html', swig.renderFile); // how to render html templates
@@ -32,8 +38,14 @@ var io = socketio.listen(server);
 
 app.use(express.static(path.join(__dirname, '/public')));
 
+// connecting to the `postgres` server
+client.connect();
+
+
 // modular routing that uses io inside it
-app.use('/', makesRouter(io));
+app.use('/', makesRouter(io, client));
+
+
 
 // // manually-written static file middleware
 // app.use(function(req, res, next){
